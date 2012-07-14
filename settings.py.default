@@ -1,0 +1,13 @@
+# -*- coding: UTF-8 -*-
+
+BASEURL = 'http://gos.talij.com/'
+
+URLS = {
+    'login': 'verify.php',
+    }
+
+AUTH_DATA = {
+    'userid': 'First Name',
+    'lastname': 'House Name',
+    'password': 'Password',
+    }

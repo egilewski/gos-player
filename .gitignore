@@ -1,3 +1,12 @@
+# Project specific.
+settings.py
+.env
+
+# Vim
+.*.swp
+.*.un~
+
+# Github generated.
 *.py[co]
 
 # Packages
@@ -25,7 +34,3 @@ pip-log.txt
 
 # Mr Developer
 .mr.developer.cfg
-
-# Vim
-.*.swp
-.*.un~

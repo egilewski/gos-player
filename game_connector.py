@@ -5,13 +5,20 @@ import http.cookiejar
 import settings
 
 
+class AuthentificationError(Exception):
+    pass
+
+
 class GameConnector(object):
     """Adapter for game web-interface."""
     def __init__(self):
         """Get connector ready for use."""
-        cj = http.cookiejar.CookieJar()
+        self.cj = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(
-                urllib.request.HTTPCookieProcessor(cj))
+                #urllib.request.HTTPRedirectHandler(),
+                #urllib.request.HTTPHandler(debuglevel=0),
+                #urllib.request.HTTPSHandler(debuglevel=0),
+                urllib.request.HTTPCookieProcessor(self.cj))
 
         self._authentificate();
 
@@ -24,15 +31,19 @@ class GameConnector(object):
         auth_data = {'mode': 0, 'submit': 'Enter World'}
         auth_data.update(settings.AUTH_DATA)
         page = self.get_page('login', auth_data)
-        # Must be exception.
-        return 'Access Denied' not in page
+        if 'Access Denied' in page:
+            raise AuthentificationError('Game server replied "Access Denied"' \
+                    'Check you credentials in settings.py')
 
-    #FIXME: check if {} in declaration is safe.
-    def get_page(self, page_name, data={}):
+    def get_page(self, page_name, data=None):
         """Return page by internal name."""
         url = self._get_url(page_name)
         data = urllib.parse.urlencode(data).encode()
-        headers = {'Accept-Encoding': 'gzip'}
+        headers = {
+                'Accept-Encoding': 'gzip',
+                'User-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0.2) ' \
+                              'Gecko/20100101 Firefox/10.0.2 Iceweasel/10.0.2',
+                }
         request = urllib.request.Request(url, data, headers)
         response = self.opener.open(request)
         return response.read().decode()

@@ -2,6 +2,7 @@
 import urllib.request
 import urllib.parse
 import http.cookiejar
+import gzip
 import settings
 
 
@@ -34,19 +35,31 @@ class GameConnector(object):
         if 'Access Denied' in page:
             raise AuthentificationError('Game server replied "Access Denied"' \
                     'Check you credentials in settings.py')
+        else:
+            import pdb
+            pdb.set_trace()
 
-    def get_page(self, page_name, data=None):
+    def get_page(self, page_name, data=()):
         """Return page by internal name."""
         url = self._get_url(page_name)
         data = urllib.parse.urlencode(data).encode()
         headers = {
                 'Accept-Encoding': 'gzip',
-                'User-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0.2) ' \
-                              'Gecko/20100101 Firefox/10.0.2 Iceweasel/10.0.2',
                 }
         request = urllib.request.Request(url, data, headers)
         response = self.opener.open(request)
-        return response.read().decode()
+        response_headers = response.info()
+
+        # Decompress gzip.
+        if ('Content-Encoding' in response_headers.keys() and \
+                    response_headers['Content-Encoding'] == 'gzip') or \
+                ('content-encoding' in response_headers.keys() and \
+                    response_headers['content-encoding'] == 'gzip'):
+            page = gzip.GzipFile(fileobj=response)
+        else:
+            page = response
+
+        return page.read().decode()
 
     def send_data(self, page_name, data):
         """Send data to page by it's internal name. Return page."""

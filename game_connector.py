@@ -35,9 +35,6 @@ class GameConnector(object):
         if 'Access Denied' in page:
             raise AuthentificationError('Game server replied "Access Denied"' \
                     'Check you credentials in settings.py')
-        else:
-            import pdb
-            pdb.set_trace()
 
     def get_page(self, page_name, data=()):
         """Return page by internal name."""
@@ -50,11 +47,7 @@ class GameConnector(object):
         response = self.opener.open(request)
         response_headers = response.info()
 
-        # Decompress gzip.
-        if ('Content-Encoding' in response_headers.keys() and \
-                    response_headers['Content-Encoding'] == 'gzip') or \
-                ('content-encoding' in response_headers.keys() and \
-                    response_headers['content-encoding'] == 'gzip'):
+        if (response_headers.get('Content-Encoding', None) == 'gzip'):
             page = gzip.GzipFile(fileobj=response)
         else:
             page = response

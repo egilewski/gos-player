@@ -7,18 +7,16 @@ import settings
 
 
 class AuthentificationError(Exception):
+    """Player wasn't able to authenticate itself to the game server."""
     pass
 
 
-class GameConnector(object):
+class GameConnector:
     """Adapter for game web-interface."""
     def __init__(self):
         """Get connector ready for use."""
         self.cj = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(
-                #urllib.request.HTTPRedirectHandler(),
-                #urllib.request.HTTPHandler(debuglevel=0),
-                #urllib.request.HTTPSHandler(debuglevel=0),
+        self.urlopener = urllib.request.build_opener(
                 urllib.request.HTTPCookieProcessor(self.cj))
 
         self._authentificate();
@@ -40,11 +38,9 @@ class GameConnector(object):
         """Return page by internal name."""
         url = self._get_url(page_name)
         data = urllib.parse.urlencode(data).encode()
-        headers = {
-                'Accept-Encoding': 'gzip',
-                }
+        headers = {'Accept-Encoding': 'gzip'}
         request = urllib.request.Request(url, data, headers)
-        response = self.opener.open(request)
+        response = self.urlopener.open(request)
         response_headers = response.info()
 
         if (response_headers.get('Content-Encoding', None) == 'gzip'):

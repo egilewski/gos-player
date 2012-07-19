@@ -1,4 +1,5 @@
 """Adapter for businesses and related stuff."""
+import game_connector
 
 
 class OutOfCityException(Exception):
@@ -18,31 +19,43 @@ class UnexistingCellException(Exception):
     pass
 
 
-class BusinessesManager:
+class BusinessManager:
     """Manager of businesses in a city."""
 
     @property
-    def _businesses_list(self):
+    def _business_list(self):
         """Return full list of purchased businesses in a city.
         Can raise OutOfCityException."""
-        pass
+        try:
+            self.business_list
+        except NameError:
+            page = game_connector.get_page('business')
+            if page.find(id='message', text='There are no businesses',
+                         recoursive=True):
+                raise OutOfCityException
+
+            container = page.find(attrs={'class': 'tabbernav'},
+                                  recoursive=True)
+            self.business_list = [x.find('a').string for x in container('li')]
+
+        return self.business_list
 
     def __len__(self):
-        return len(_businesses_list)
+        return len(_business_list)
 
     def __getitem__(self, key):
-        return _businesses_list[key]
+        return _business_list[key]
 
     def __iter__(self):
-        for business in _businesses_list:
+        for business in _business_list:
             yield business
 
     def __reversed__(self):
-        for business in reverse(_businesses_list):
+        for business in reverse(_business_list):
             yield business
 
     def __contains__(self, item):
-        retirn item in _businesses_list
+        retirn item in _business_list
 
 
 class Business:

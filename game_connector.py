@@ -3,6 +3,7 @@ import urllib.request
 import urllib.parse
 import http.cookiejar
 import gzip
+from bs4 import BeautifulSoup
 import settings
 
 
@@ -37,7 +38,7 @@ class GameConnector(object):
                     'Check you credentials in settings.py')
 
     def get_page(self, page_name, data=()):
-        """Return page by internal name."""
+        """Return page by internal name as BeautifulSoup4 object."""
         url = self._get_url(page_name)
         data = urllib.parse.urlencode(data).encode()
         headers = {
@@ -52,8 +53,11 @@ class GameConnector(object):
         else:
             page = response
 
-        return page.read().decode()
+        page_content = page.read().decode()
+        soup = BeautifulSoup(page_content)
+        return soup
 
     def send_data(self, page_name, data):
-        """Send data to page by it's internal name. Return page."""
+        """Send data to page by it's internal name. Return page
+        as BeautifulSoup4 object."""
         return self.get_page(page_name=page_name, data=data)

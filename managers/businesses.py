@@ -21,10 +21,28 @@ class UnexistingCellException(Exception):
 class BusinessesManager:
     """Manager of businesses in a city."""
 
-    def get_businesses_list(self):
-        """Return full list of purchased businesses in current city.
+    @property
+    def _businesses_list(self):
+        """Return full list of purchased businesses in a city.
         Can raise OutOfCityException."""
         pass
+
+    def __len__(self):
+        return len(_businesses_list)
+
+    def __getitem__(self, key):
+        return _businesses_list[key]
+
+    def __iter__(self):
+        for business in _businesses_list:
+            yield business
+
+    def __reversed__(self):
+        for business in reverse(_businesses_list):
+            yield business
+
+    def __contains__(self, item):
+        retirn item in _businesses_list
 
 
 class Business:

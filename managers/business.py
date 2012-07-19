@@ -55,12 +55,12 @@ class BusinessManager:
             yield business
 
     def __contains__(self, item):
-        retirn item in _business_list
+        return item in _business_list
 
 
 class Business:
-        """Can raise OutOfCityException, NoSuchBusiness, NoSuchCell."""
     pass
+    """Can raise OutOfCityException, NoSuchBusiness, NoSuchCell."""
 
 
 class Cell:

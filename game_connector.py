@@ -1,8 +1,8 @@
 """
 Communication with GoS server.
 
-This module provides only one funtion get_page(), is callable and holds it's state as a more convenient to use
-alternative to singleton class.
+This module provides only one funtion get_page().
+Authorisation to server is made on module import.
 """
 import urllib.request
 import urllib.parse

@@ -4,7 +4,7 @@ BASEURL = 'http://gos.talij.com/'
 
 URLS = {
     'login': 'verify.php',
-    'business': 'buiseness.php',
+    'business': 'mybuisnesses.php',
     }
 
 AUTH_DATA = {

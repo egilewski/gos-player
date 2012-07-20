@@ -1,5 +1,5 @@
 """Adapter for businesses and related stuff."""
-from game_connector import GameConnector
+from game_connector import get_page
 from utils import lazy_property
 
 
@@ -9,14 +9,18 @@ class OutOfCityException(Exception):
 
 
 class UnexistingBusinessException(Exception):
-    """Method was called for a business that wasn't purchased
-    in current city (or just doesn't exist)."""
+    """
+    Method was called for a business that wasn't purchased in current
+    city (or just doesn't exist).
+    """
     pass
 
 
 class UnexistingCellException(Exception):
-    """Method was called for a cell that wasn't purchased
-    for given business in current city (or just doesn't exist)."""
+    """
+    Method was called for a cell that wasn't purchased for given
+    business in current city (or just doesn't exist).
+    """
     pass
 
 
@@ -25,66 +29,89 @@ class BusinessManager:
 
     @lazy_property
     def _business_list(self):
-        """Return full list of purchased businesses in a city.
-        Can raise OutOfCityException."""
-        page = GameConnector.get_page('business')
+        """
+        Return dict of purchased businesses in a city.
+
+        Can raise OutOfCityException.
+        """
+        page = get_page('business')
         if page.find(id='message', text='There are no businesses',
-                     recoursive=True):
+                     recursive=True):
             raise OutOfCityException
 
-        container = page.find(attrs={'class': 'tabbernav'}, recoursive=True)
-        return [Business(x.find('a').string, page) for x in container('li')]
+        business_name_list = [
+                x.find('h3').string for x in
+                page.find_all(attrs={'class': 'tabbertab'}, recursive=True)]
+        business_list = {x: Business(x, page) for x in business_name_list}
+        return business_list
 
     def __len__(self):
-        return len(_business_list)
+        return len(self._business_list)
 
     def __getitem__(self, key):
-        return _business_list[key]
+        return self._business_list[key]
 
     def __iter__(self):
-        for business in _business_list:
+        for business in self._business_list:
             yield business
 
-    def __reversed__(self):
-        for business in reverse(_business_list):
-            yield business
-
-    #def __contains__(self, item):
-        #return item in _business_list
+    def __keytransform__(self, key):
+        return key.lower()
 
     def __str__(self):
-        return _business_list
+        return self._business_list
 
 
 class Business:
+    """Actual business, i. e. bought in a city."""
+
     def __init__(self, name, page):
-        """Save name of business and the business page to be parsed later."""
+        """
+        Save name of business and the business page to be parsed later.
+
+        Can raise UnexistingBusinessException.
+        """
         self.name = name
         self.page = page
 
     @lazy_property
     def _cell_list(self):
-        pass
+        """Return dict of purchased businesses in a city."""
+        interface_cells = (
+                page(attrs={'class': 'tabberlive'}, recursive=True)
+                .find('h3', text=re.compile(self.name, re.IGNORECASE))
+                .parent()
+                .find_all('td')
+        index_list = [
+                re.search('swapinfo\((\d+),(\d+)\)', str(x.string)).groups()
+                for x in interface_cells]
+        #TODO: get data by indexes.
+        #TODO: fix strings below.
+        if name not in business_name_list:
+            raise OutOfCityException
+        if name not in (x.string for x in tabbernav.findall('li a')):
+            raise UnexistingBusinessException
+
+
+        container = page.find(attrs={'class': 'tabbernav'}, recursive=True)
+        return {x.find('a').string: Business(x.find('a').string, page)
+                for x in container('li')}
 
     def __len__(self):
-        return len(_cell_list)
+        return len(self._cell_list)
 
     def __getitem__(self, key):
-        return _cell_list[key]
+        return self._cell_list[key]
 
     def __iter__(self):
-        for cell in _cell_list:
+        for cell in self._cell_list:
             yield cell
 
-    def __reversed__(self):
-        for cell in reverse(_cell_list):
-            yield cell
-
-    #def __contains__(self, item):
-        #return item in _cell_list
+    def __keytransform__(self, key):
+        return key.lower()
 
     def __str__(self):
-        return _cell_list
+        return self._cell_list
 
 
 class Cell:
@@ -92,9 +119,12 @@ class Cell:
 
     @property
     def status(self):
-        """Return status of given cell of given business.
+        """
+        Return status of given cell of given business.
+
         Possible statuses: (not purchased/free for use/in progress/
-        ready for sale)."""
+        ready for sale).
+        """
         pass
 
     @property

@@ -59,7 +59,7 @@ class BusinessManager:
         return key.lower()
 
     def __str__(self):
-        return self._business_list
+        return '%s: %s' % (str(BusinessManager), str(self._business_list))
 
 
 class Business:
@@ -67,7 +67,7 @@ class Business:
 
     def __init__(self, name, page):
         """
-        Save name of business and the business page to be parsed later.
+        Save name of business and the businesses page to be parsed later.
 
         Can raise UnexistingBusinessException.
         """
@@ -77,24 +77,22 @@ class Business:
     @lazy_property
     def _cell_list(self):
         """Return dict of purchased businesses in a city."""
-        interface_cells = (
-                page(attrs={'class': 'tabberlive'}, recursive=True)
-                .find('h3', text=re.compile(self.name, re.IGNORECASE))
-                .parent()
-                .find_all('td')
-        index_list = [
-                re.search('swapinfo\((\d+),(\d+)\)', str(x.string)).groups()
-                for x in interface_cells]
-        #TODO: get data by indexes.
-        #TODO: fix strings below.
         if name not in business_name_list:
             raise OutOfCityException
         if name not in (x.string for x in tabbernav.findall('li a')):
             raise UnexistingBusinessException
 
-
         container = page.find(attrs={'class': 'tabbernav'}, recursive=True)
-        return {x.find('a').string: Business(x.find('a').string, page)
+        interface_cells = (
+                .find('h3', text=re.compile(self.name, re.IGNORECASE))
+                .parent()
+                .find_all('td'))
+        index_list = [
+                re.search('swapinfo\((\d+),(\d+)\)', str(x.string)).groups()
+                for x in interface_cells]
+        #TODO: get data by indexes.
+
+        return {x.find('a').string: Cell(x.find('a').string, page)
                 for x in container('li')}
 
     def __len__(self):
@@ -111,11 +109,20 @@ class Business:
         return key.lower()
 
     def __str__(self):
-        return self._cell_list
+        return '%s: %s' % (str(Business), str(self._cell_list))
 
 
 class Cell:
     """Business cell."""
+
+    def __init__(self, number, page):
+        """
+        Save number of cell and the businesses page to be parsed later.
+
+        Can raise UnexistingCellException.
+        """
+        self.number = number
+        self.page = page
 
     @property
     def status(self):

@@ -1,5 +1,4 @@
-"""Adapter for businesses and related stuff."""
-from game_connector import get_page
+"""Adapter for businesses."""
 from utils import lazy_property
 
 
@@ -24,76 +23,36 @@ class UnexistingCellException(Exception):
     pass
 
 
-class BusinessManager:
-    """Manager of businesses in a city."""
-
-    @lazy_property
-    def _business_list(self):
-        """
-        Return dict of purchased businesses in a city.
-
-        Can raise OutOfCityException.
-        """
-        page = get_page('business')
-        if page.find(id='message', text='There are no businesses',
-                     recursive=True):
-            raise OutOfCityException
-
-        business_name_list = [
-                x.find('h3').string for x in
-                page.find_all(attrs={'class': 'tabbertab'}, recursive=True)]
-        business_list = {x: Business(x, page) for x in business_name_list}
-        return business_list
-
-    def __len__(self):
-        return len(self._business_list)
-
-    def __getitem__(self, key):
-        return self._business_list[key]
-
-    def __iter__(self):
-        for business in self._business_list:
-            yield business
-
-    def __keytransform__(self, key):
-        return key.lower()
-
-    def __str__(self):
-        return '%s: %s' % (str(BusinessManager), str(self._business_list))
-
-
 class Business:
-    """Actual business, i. e. bought in a city."""
+    """Abstract bought in a city business."""
 
-    def __init__(self, name, page):
+    def __init__(self, page):
         """
-        Save name of business and the businesses page to be parsed later.
+        Save businesses page to be parsed later.
 
         Can raise UnexistingBusinessException.
         """
-        self.name = name
         self.page = page
 
     @lazy_property
     def _cell_list(self):
-        """Return dict of purchased businesses in a city."""
-        if name not in business_name_list:
+        """Return dict of purchased cells of the business in the city."""
+        business_container = self.page.find(attrs={'class': 'tabbernav'},
+                                       recursive=True)
+        if not business_container:
             raise OutOfCityException
-        if name not in (x.string for x in tabbernav.findall('li a')):
+
+        business_name_list = {x.string.lower(): x for x in container('h3')}
+        if self._business_name not in business_name_list:
             raise UnexistingBusinessException
 
-        container = page.find(attrs={'class': 'tabbernav'}, recursive=True)
-        interface_cells = (
-                .find('h3', text=re.compile(self.name, re.IGNORECASE))
-                .parent()
-                .find_all('td'))
+        interface_cells = business_titles[self._business_name].parent().find_all('td')
         index_list = [
                 re.search('swapinfo\((\d+),(\d+)\)', str(x.string)).groups()
                 for x in interface_cells]
-        #TODO: get data by indexes.
+        #TODO: get data by indices.
 
-        return {x.find('a').string: Cell(x.find('a').string, page)
-                for x in container('li')}
+        return [Cell(x.find('a').string, page) for x in container('li')]
 
     def __len__(self):
         return len(self._cell_list)
@@ -146,3 +105,19 @@ class Cell:
     def execute(self, process):
         """Start process by name."""
         pass
+
+
+class UnsupportedBusiness(Business):
+    """
+    Special business type for unsupported businesses.
+
+    Used when no class to support a business found.
+    """
+    _business_name = 'Unsupported'
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @property
+    def _cell_list(self):
+        return []

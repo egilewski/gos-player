@@ -11,6 +11,7 @@ class UnsupportedBusinessException(Exception):
 
 class BusinessManager:
     """Manager of businesses in a city."""
+    _registered_businesses = {}
 
     @lazy_property
     def _business_list(self):
@@ -39,7 +40,7 @@ class BusinessManager:
         Can raise UnsupportedBusinessException.
         """
         for cls in self._registered_businesses:
-            if cls._business_name == name:
+            if cls.supports(name):
                 return cls(page)
         return business_base.UnsupportedBusiness()
 

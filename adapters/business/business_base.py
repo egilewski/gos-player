@@ -23,8 +23,26 @@ class UnexistingCellException(Exception):
     pass
 
 
-class Business:
-    """Abstract bought in a city business."""
+class BusinessFactory(type):
+    """
+    Factory for instantiating registered business driver
+    instead of object of class Business.
+    """
+
+    def __call__(cls, business_name, page):
+        """
+        Find and instantiate registered business driver class
+        that claims to support business with given name.
+        """
+        pass
+
+
+class Business(metaclass=BusinessFactory):
+    """
+    Virtual business class.
+
+    On instantiation creates one of registered business classess.
+    """
 
     def __init__(self, page):
         """
@@ -53,6 +71,10 @@ class Business:
         #TODO: get data by indices.
 
         return [Cell(x.find('a').string, page) for x in container('li')]
+
+    @classmethod
+    def supports(cls, business_name):
+        return False
 
     def __len__(self):
         return len(self._cell_list)
@@ -113,7 +135,6 @@ class UnsupportedBusiness(Business):
 
     Used when no class to support a business found.
     """
-    _business_name = 'Unsupported'
 
     def __init__(self, *args, **kwargs):
         pass
@@ -121,3 +142,7 @@ class UnsupportedBusiness(Business):
     @property
     def _cell_list(self):
         return []
+
+    @classmethod
+    def supports(cls, business_name):
+        return True

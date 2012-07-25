@@ -2,6 +2,7 @@
 from adapters.business.business_base import Business
 from adapters.business.business_manager import BusinessManager
 
+
 class MiningBusiness(Business):
     """Business subclass that implements specifics in Mine usage."""
 

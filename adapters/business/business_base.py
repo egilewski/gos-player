@@ -2,6 +2,14 @@
 from utils import lazy_property
 
 
+class BusinessHandlerNotFoundException(Exception):
+    """
+    No handler for business found.
+
+    Shouldn't be raised, as there is UnsupportedBusiness handler."""
+    pass
+
+
 class OutOfCityException(Exception):
     """Method that can be used only in a city was called in a wilderness."""
     pass
@@ -23,6 +31,49 @@ class UnexistingCellException(Exception):
     pass
 
 
+class BusinessLibrary:
+    """
+    Collection of business handler classes.
+
+    Business handlers should be registered with register() method.
+    get_handler() method returns appropriate handler among registered.
+
+    Handler with higer priority is returned when multiple found.
+
+    Shouldn't be instantiated.
+    """
+
+    _business_list = []
+    """
+    List of registered businesses.
+
+    Item format: (business_class, priority).
+    """
+
+    def __new__(cls):
+        """Simple protection from Jimmy."""
+        raise Exception("%s shouldn't be instantiated" % cls.__name__)
+
+    @classmethod
+    def register(cls, business_class, priority=0):
+        """
+        Save business handler class to search among later.
+
+        business_class should have supports method with exactly one
+        mandatory argument. Return value will be casted to boolean.
+        """
+        cls._business_list.append((business_class, priority))
+
+    @classmethod
+    def get_handler(cls, business_name):
+        """Return appropriate business handler class by business name."""
+        cls._business_list.sort(key=lambda a: a[1], reverse=True)
+        for business_class, priority in cls._business_list:
+            if business_class.supports(business_name):
+                return business_class
+        raise BusinessHandlerNotFoundException
+
+
 class BusinessFactory(type):
     """
     Factory for instantiating registered business driver
@@ -41,7 +92,8 @@ class Business(metaclass=BusinessFactory):
     """
     Virtual business class.
 
-    On instantiation creates one of registered business classess.
+    On instantiation creates and returns object of one of business
+    handler classess registered in BusinessLibrary.
     """
 
     def __init__(self, page):

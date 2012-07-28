@@ -1,6 +1,5 @@
 """Adapter for mining business."""
 from adapters.business.business_base import Business
-from adapters.business.business_manager import BusinessManager
 
 
 class MiningBusiness(Business):
@@ -9,4 +8,4 @@ class MiningBusiness(Business):
     """Special constant BusinessManager uses to select Business subclass."""
     _business_name = 'Mine'
 
-BusinessManager.register_business(MiningBusiness)
+Business.register_business(MiningBusiness)

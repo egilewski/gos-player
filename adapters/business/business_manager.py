@@ -29,7 +29,7 @@ class BusinessManager:
         business_name_list = [
                 x.find('h3').string for x in
                 page.find_all(attrs={'class': 'tabbertab'}, recursive=True)]
-        business_dict = {x: Business(x, page) for x in business_name_list}
+        business_dict = {x: business_base.Business(x, page) for x in business_name_list}
         return business_dict
 
     def __len__(self):

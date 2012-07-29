@@ -81,7 +81,8 @@ class BusinessFactory(type):
     instead of object of class Business.
     """
 
-    def __call__(cls, business_name, page):
+    @classmethod
+    def __call__(cls, business_class, business_name, page):
         """
         Find and instantiate registered business driver class
         that claims to support business with given name.
@@ -107,15 +108,17 @@ class Business(metaclass=BusinessFactory):
     def __init__(self, business_name, page):
         """
         Save businesses page to be parsed later.
-
-        Can raise UnexistingBusinessException.
         """
         self.business_name = business_name
         self.page = page
 
     @lazy_property
-    def _cell_list(self):
-        """Return dict of purchased cells of the business in the city."""
+    def _infocells_list(self):
+        """
+        Return list of cell compound IDs.
+
+        Can raise OutOfCityException and UnexistingBusinessException.
+        """
         business_container = self.page.find(attrs={'class': 'tabbernav'},
                                        recursive=True)
         if not business_container:
@@ -129,6 +132,11 @@ class Business(metaclass=BusinessFactory):
         index_list = [
                 re.search('swapinfo\((\d+),(\d+)\)', str(x.string)).groups()
                 for x in interface_cells]
+        return index_list
+
+    @lazy_property
+    def _cell_list(self):
+        """Return dict of purchased cells of the business in the city."""
         #TODO: get data by indices.
 
         return [Cell(x.find('a').string, page) for x in container('li')]

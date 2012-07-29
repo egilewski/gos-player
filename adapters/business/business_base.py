@@ -59,8 +59,9 @@ class BusinessLibrary:
         """
         Save business handler class to search among later.
 
-        business_class should have supports method with exactly one
-        mandatory argument. Return value will be casted to boolean.
+        business_class should have static/classmethod supports() with
+        exactly one mandatory argument. Return value will be casted to
+        boolean.
         """
         cls._business_list.append((business_class, priority))
 
@@ -85,7 +86,8 @@ class BusinessFactory(type):
         Find and instantiate registered business driver class
         that claims to support business with given name.
         """
-        pass
+        handler_class = BusinessLibrary.get_handler(business_name)
+        return super().__call__(handler_class, business_name, page)
 
 
 class Business(metaclass=BusinessFactory):
@@ -96,12 +98,19 @@ class Business(metaclass=BusinessFactory):
     handler classess registered in BusinessLibrary.
     """
 
-    def __init__(self, page):
+    _business_name = ''
+    """
+    Name of business supports() reports to accept.
+    With false value it won't report to support anything.
+    """
+
+    def __init__(self, business_name, page):
         """
         Save businesses page to be parsed later.
 
         Can raise UnexistingBusinessException.
         """
+        self.business_name = business_name
         self.page = page
 
     @lazy_property
@@ -116,7 +125,7 @@ class Business(metaclass=BusinessFactory):
         if self._business_name not in business_name_list:
             raise UnexistingBusinessException
 
-        interface_cells = business_titles[self._business_name].parent().find_all('td')
+        interface_cells = business_titles[self._business_name].parent()('td')
         index_list = [
                 re.search('swapinfo\((\d+),(\d+)\)', str(x.string)).groups()
                 for x in interface_cells]
@@ -126,7 +135,7 @@ class Business(metaclass=BusinessFactory):
 
     @classmethod
     def supports(cls, business_name):
-        return False
+        return cls._business_name and business_name == cls._business_name
 
     def __len__(self):
         return len(self._cell_list)
@@ -185,7 +194,10 @@ class UnsupportedBusiness(Business):
     """
     Special business type for unsupported businesses.
 
-    Used when no class to support a business found.
+    Used when no class to support a business was found
+    (i. e. has low priority).
+
+    Doesn't do anything.
     """
 
     def __init__(self, *args, **kwargs):
@@ -198,3 +210,4 @@ class UnsupportedBusiness(Business):
     @classmethod
     def supports(cls, business_name):
         return True
+BusinessLibrary.register(UnsupportedBusiness, -1000)

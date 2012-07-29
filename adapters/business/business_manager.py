@@ -29,20 +29,8 @@ class BusinessManager:
         business_name_list = [
                 x.find('h3').string for x in
                 page.find_all(attrs={'class': 'tabbertab'}, recursive=True)]
-        business_dict = {x: self._instantiate_business(x, page)
-                         for x in business_name_list}
+        business_dict = {x: Business(x, page) for x in business_name_list}
         return business_dict
-
-    def _instantiate_business(self, name, page):
-        """
-        Create and return instance of subclass of Business.
-
-        Can raise UnsupportedBusinessException.
-        """
-        for cls in self._registered_businesses:
-            if cls.supports(name):
-                return cls(page)
-        return business_base.UnsupportedBusiness()
 
     def __len__(self):
         return len(self._business_list)

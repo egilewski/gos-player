@@ -1,4 +1,5 @@
 """Adapter for businesses."""
+import re
 from utils import lazy_property
 
 
@@ -82,7 +83,7 @@ class BusinessFactory(type):
     """
 
     @classmethod
-    def __call__(cls, business_class, business_name, page):
+    def __call__(cls, business_name, page):
         """
         Find and instantiate registered business driver class
         that claims to support business with given name.
@@ -101,8 +102,11 @@ class Business(metaclass=BusinessFactory):
 
     _business_name = ''
     """
-    Name of business supports() reports to accept.
-    With false value it won't report to support anything.
+    Name of business, default implementation of supports() method
+    reports to accept.
+
+    With value casted to boolean false it won't report to support
+    anything.
     """
 
     def __init__(self, business_name, page):
@@ -113,24 +117,26 @@ class Business(metaclass=BusinessFactory):
         self.page = page
 
     @lazy_property
-    def _infocells_list(self):
+    def _infocell_ids_list(self):
         """
         Return list of cell compound IDs.
 
         Can raise OutOfCityException and UnexistingBusinessException.
         """
-        business_container = self.page.find(attrs={'class': 'tabbernav'},
+        business_container = self.page.find(attrs={'class': 'tabber'},
                                        recursive=True)
         if not business_container:
             raise OutOfCityException
 
-        business_name_list = {x.string.lower(): x for x in container('h3')}
+        business_name_list = {x.string: x
+                              for x in business_container.find_all('h3')}
         if self._business_name not in business_name_list:
             raise UnexistingBusinessException
 
-        interface_cells = business_titles[self._business_name].parent()('td')
+        interface_cells = (business_name_list[self._business_name]
+                          .parent.find_all('td'))
         index_list = [
-                re.search('swapinfo\((\d+),(\d+)\)', str(x.string)).groups()
+                re.search('swapinfo\((\d+),(\d+)\)', str(x)).groups()
                 for x in interface_cells]
         return index_list
 
@@ -210,6 +216,10 @@ class UnsupportedBusiness(Business):
 
     def __init__(self, *args, **kwargs):
         pass
+
+    @property
+    def _infocell_ids_list(self):
+        return []
 
     @property
     def _cell_list(self):

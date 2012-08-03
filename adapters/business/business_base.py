@@ -1,5 +1,6 @@
 """Adapter for businesses."""
 import re
+import html.parser
 from utils import lazy_property
 
 
@@ -139,6 +140,22 @@ class Business(metaclass=BusinessFactory):
                 re.search('swapinfo\((\d+),(\d+)\)', str(x)).groups()
                 for x in interface_cells]
         return index_list
+
+    @lazy_property
+    def _infocell_by_number(self, number):
+        """Return HTML prepared to be inserted into interface info cell."""
+        try:
+            infocell_id = self._infocell_ids_list[number]
+        match = re.search('bstats\[%d\]\[%d\] *= *([^\n]*)'
+                          % (infocell_id[0], infocell_id[1]),
+                          str(b.page))
+        if match:
+            return html.parser.HTMLParser().unescape(match.group(1)[1:-2])
+        else:
+            return ''
+
+    @lazy_property
+    def _infocell_parsed(self, 
 
     @lazy_property
     def _cell_list(self):

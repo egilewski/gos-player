@@ -1,10 +1,10 @@
 """Adapter for mining business."""
-from adapters.business import business_base
+from adapters.business import business_cell
 
 
-class MiningBusiness(business_base.Business):
-    """Business subclass that implements specifics in Mine usage."""
+class MiningCell(business_cell.Cell):
+    """Cell handler that implements specifics in Mine usage."""
 
-    """Special constant BusinessManager uses to select Business subclass."""
-    _business_name = 'Mine'
-business_base.BusinessLibrary.register(MiningBusiness)
+    _cell_type = 'Mine'
+    """Special constant CellFactory uses to select Cell handler."""
+business_cell.CellLibrary.register(MiningCell)

@@ -1,15 +1,8 @@
-"""Adapter for businesses."""
+"""Business handler."""
 import re
-import html.parser
+from html.parser import HTMLParser
 from utils import lazy_property
-
-
-class BusinessHandlerNotFoundException(Exception):
-    """
-    No handler for business found.
-
-    Shouldn't be raised, as there is UnsupportedBusiness handler."""
-    pass
+from adapters.business.business_cell import Cell
 
 
 class OutOfCityException(Exception):
@@ -19,112 +12,31 @@ class OutOfCityException(Exception):
 
 class UnexistingBusinessException(Exception):
     """
-    Method was called for a business that wasn't purchased in current
-    city (or just doesn't exist).
+    Method was called for business that wasn't purchased in current
+    city.
     """
     pass
 
 
-class UnexistingCellException(Exception):
+class Business:
     """
-    Method was called for a cell that wasn't purchased for given
-    business in current city (or just doesn't exist).
-    """
-    pass
-
-
-class BusinessLibrary:
-    """
-    Collection of business handler classes.
-
-    Business handlers should be registered with register() method.
-    get_handler() method returns appropriate handler among registered.
-
-    Handler with higer priority is returned when multiple found.
-
-    Shouldn't be instantiated.
-    """
-
-    _business_list = []
-    """
-    List of registered businesses.
-
-    Item format: (business_class, priority).
-    """
-
-    def __new__(cls):
-        """Simple protection from Jimmy."""
-        raise Exception("%s shouldn't be instantiated" % cls.__name__)
-
-    @classmethod
-    def register(cls, business_class, priority=0):
-        """
-        Save business handler class to search among later.
-
-        business_class should have static/classmethod supports() with
-        exactly one mandatory argument. Return value will be casted to
-        boolean.
-        """
-        cls._business_list.append((business_class, priority))
-
-    @classmethod
-    def get_handler(cls, business_name):
-        """Return appropriate business handler class by business name."""
-        cls._business_list.sort(key=lambda a: a[1], reverse=True)
-        for business_class, priority in cls._business_list:
-            if business_class.supports(business_name):
-                return business_class
-        raise BusinessHandlerNotFoundException
-
-
-class BusinessFactory(type):
-    """
-    Factory for instantiating registered business driver
-    instead of object of class Business.
-    """
-
-    @classmethod
-    def __call__(cls, business_name, page):
-        """
-        Find and instantiate registered business driver class
-        that claims to support business with given name.
-        """
-        handler_class = BusinessLibrary.get_handler(business_name)
-        return super().__call__(handler_class, business_name, page)
-
-
-class Business(metaclass=BusinessFactory):
-    """
-    Virtual business class.
-
-    On instantiation creates and returns object of one of business
-    handler classess registered in BusinessLibrary.
-    """
-
-    _business_name = ''
-    """
-    Name of business, default implementation of supports() method
-    reports to accept.
-
-    With value casted to boolean false it won't report to support
-    anything.
+    Representation of one business bought in current city.
     """
 
     def __init__(self, business_name, page):
         """
         Save businesses page to be parsed later.
         """
-        self.business_name = business_name
-        self.page = page
+        self._page = page
 
     @lazy_property
-    def _infocell_ids_list(self):
+    def _cell_id_list(self):
         """
         Return list of cell compound IDs.
 
         Can raise OutOfCityException and UnexistingBusinessException.
         """
-        business_container = self.page.find(attrs={'class': 'tabber'},
+        business_container = self._page.find(attrs={'class': 'tabber'},
                                        recursive=True)
         if not business_container:
             raise OutOfCityException
@@ -135,38 +47,39 @@ class Business(metaclass=BusinessFactory):
             raise UnexistingBusinessException
 
         interface_cells = (business_name_list[self._business_name]
-                          .parent.find_all('td'))
-        index_list = [
-                re.search('swapinfo\((\d+),(\d+)\)', str(x)).groups()
-                for x in interface_cells]
+                           .parent.find_all('td'))
+        index_list = []
+        for cell in interface_cells:
+            match = re.search('swapinfo\((\d+),(\d+)\)', str(cell))
+            if match:
+                index_list.append((int(match.group(1)), int(match.group(2))))
         return index_list
 
     @lazy_property
-    def _infocell_by_number(self, number):
-        """Return HTML prepared to be inserted into interface info cell."""
-        try:
-            infocell_id = self._infocell_ids_list[number]
-        match = re.search('bstats\[%d\]\[%d\] *= *([^\n]*)'
-                          % (infocell_id[0], infocell_id[1]),
-                          str(b.page))
-        if match:
-            return html.parser.HTMLParser().unescape(match.group(1)[1:-2])
-        else:
-            return ''
+    def _raw_cell_list(self):
+        """
+        Return list of HTML prepared to be inserted into interface info
+        cell.
 
-    @lazy_property
-    def _infocell_parsed(self, 
+        Unexisting cells are excluded from the list.
+        """
+        infocell_list = []
+        for id0, id1 in self._cell_id_list:
+            match = re.search(
+                    'bstats\[%d\]\[%d\] *= *["\']([^\n]*)["\']' % (id0, id1),
+                    str(self._page))
+            if match:
+                cell_string = HTMLParser().unescape(match.group(1))
+                infocell_list.append(cell_string)
+        return infocell_list
 
     @lazy_property
     def _cell_list(self):
-        """Return dict of purchased cells of the business in the city."""
-        #TODO: get data by indices.
-
-        return [Cell(x.find('a').string, page) for x in container('li')]
-
-    @classmethod
-    def supports(cls, business_name):
-        return cls._business_name and business_name == cls._business_name
+        """
+        Return list of Cell objects representing purchased of the
+        business in the city.
+        """
+        return [Cell(x) for x in self._raw_cell_list]
 
     def __len__(self):
         return len(self._cell_list)
@@ -183,66 +96,3 @@ class Business(metaclass=BusinessFactory):
 
     def __str__(self):
         return '%s: %s' % (str(Business), str(self._cell_list))
-
-
-class Cell:
-    """Business cell."""
-
-    def __init__(self, number, page):
-        """
-        Save number of cell and the businesses page to be parsed later.
-
-        Can raise UnexistingCellException.
-        """
-        self.number = number
-        self.page = page
-
-    @property
-    def status(self):
-        """
-        Return status of given cell of given business.
-
-        Possible statuses: (not purchased/free for use/in progress/
-        ready for sale).
-        """
-        pass
-
-    @property
-    def last_process(self):
-        """Return dict of last process info."""
-        pass
-
-    def release(self):
-        """Sell or release in another way result of finished process."""
-        pass
-
-    def execute(self, process):
-        """Start process by name."""
-        pass
-
-
-class UnsupportedBusiness(Business):
-    """
-    Special business type for unsupported businesses.
-
-    Used when no class to support a business was found
-    (i. e. has low priority).
-
-    Doesn't do anything.
-    """
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    @property
-    def _infocell_ids_list(self):
-        return []
-
-    @property
-    def _cell_list(self):
-        return []
-
-    @classmethod
-    def supports(cls, business_name):
-        return True
-BusinessLibrary.register(UnsupportedBusiness, -1000)

@@ -102,6 +102,7 @@ class Cell(metaclass=CellFactory):
 
         Can raise UnexistingCellException.
         """
+        #TODO: delete this after writing _parse_info.
         self._raw_info = info
         self._info = self._parse_info(info)
 

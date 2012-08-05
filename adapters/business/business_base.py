@@ -1,4 +1,4 @@
-"""Business handler."""
+"""Business handler. Universal for all business types."""
 import re
 from html.parser import HTMLParser
 from utils import lazy_property
@@ -12,7 +12,7 @@ class OutOfCityException(Exception):
 
 class UnexistingBusinessException(Exception):
     """
-    Method was called for business that wasn't purchased in current
+    Business was created for business that wasn't purchased in current
     city.
     """
     pass
@@ -26,26 +26,23 @@ class Business:
     def __init__(self, business_name, page):
         """
         Save businesses page to be parsed later.
-        """
-        self._page = page
-
-    @lazy_property
-    def _cell_id_list(self):
-        """
-        Return list of cell compound IDs.
 
         Can raise OutOfCityException and UnexistingBusinessException.
         """
         business_container = self._page.find(attrs={'class': 'tabber'},
-                                       recursive=True)
+                                             recursive=True)
         if not business_container:
             raise OutOfCityException
 
-        business_name_list = {x.string: x
-                              for x in business_container.find_all('h3')}
-        if self._business_name not in business_name_list:
+        if business_name not in {x.string
+                                 for x in business_container.find_all('h3')}:
             raise UnexistingBusinessException
 
+        self._page = page
+
+    @lazy_property
+    def _cell_id_list(self):
+        """Return list of cell compound IDs."""
         interface_cells = (business_name_list[self._business_name]
                            .parent.find_all('td'))
         index_list = []
